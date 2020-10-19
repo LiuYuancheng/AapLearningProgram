@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">My1stApplication</string>
+    <string name="edit_message">Enter a valid IPv4 address(i.e 127.0.0.1).</string>
+    <string name="button_send">Ping</string>
+</resources>

@@ -30,6 +30,7 @@ public class MainActivity extends AppCompatActivity {
     static {
         System.loadLibrary("native-lib");
     }
+
     private static final int CREATE_FILE = 1;
     private Uri documentUri;
     private int keyIdx = 0;
@@ -44,22 +45,25 @@ public class MainActivity extends AppCompatActivity {
         tv.setText(stringFromJNI());
     }
 
-    public void sendMessage(View view){
+    public void sendMessage(View view) {
+
+        InitKeyExchange();
         TextView tv = findViewById(R.id.sample_text);
         tv.setText(keyExchangeJNI());
         //@SuppressLint("WrongViewCast") EditText editText = (EditText) findViewById(R.id.textView);
         //String message = editText.getText().toString();
         //writeAppSpecificExternalFile(getApplicationContext(), false);
         writeStorageAccessFrameworkFile(getApplicationContext());
-        keyIdx ++;
+        keyIdx++;
     }
 
-    public void loadMessage(View view){
+    public void loadMessage(View view) {
         readStorageAccessFrameworkFile(getApplicationContext());
     }
 
     private void writeStorageAccessFrameworkFile(Context context) {
-        String fileName = "QS_Encryption_key";
+        //String fileName = "QS_Encryption_key";
+        String fileName = stringFromJNI();
         Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
         intent.addCategory(Intent.CATEGORY_OPENABLE);
         intent.setType("text/plain");
@@ -70,8 +74,10 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        String fileName = "QS_Encryption_key";
-        String testKeyStr = "biXhp3Ha1fgxVEp48zHrvVoXMStmxPuAPHo3TVz5lHU=";
+        //String fileName = "QS_Encryption_key";
+        String fileName = stringFromJNI();
+        //String testKeyStr = "biXhp3Ha1fgxVEp48zHrvVoXMStmxPuAPHo3TVz5lHU=";
+        String testKeyStr = keyExchangeJNI();
         TextView tv = findViewById(R.id.sample_text);
 
         if (requestCode == CREATE_FILE && data != null) {
@@ -81,9 +87,9 @@ public class MainActivity extends AppCompatActivity {
                 ParcelFileDescriptor pfd = getContentResolver().openFileDescriptor(data.getData(), "wa");
 
                 FileOutputStream fileOutputStream = new FileOutputStream(pfd.getFileDescriptor());
-                fileOutputStream.write(("key Idx: 00000"+keyIdx+"\n").getBytes());
-                fileOutputStream.write(("Load key time:"+ System.currentTimeMillis() + "\n").getBytes());
-                fileOutputStream.write(("QS Encrypt Key:"+ testKeyStr+"\n").getBytes());
+                fileOutputStream.write(("key Idx: 00000" + keyIdx + "\n").getBytes());
+                fileOutputStream.write(("Load key time:" + System.currentTimeMillis() + "\n").getBytes());
+                fileOutputStream.write(("QS Encrypt Key:" + testKeyStr + "\n").getBytes());
 
                 fileOutputStream.close();
                 pfd.close();
@@ -139,11 +145,13 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-
     /**
      * A native method that is implemented by the 'native-lib' native library,
      * which is packaged with this application.
      */
+    public native  String InitKeyExchange();
+
     public native String stringFromJNI();
+
     public native String keyExchangeJNI();
 }

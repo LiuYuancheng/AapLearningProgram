@@ -10,6 +10,7 @@ Java_com_example_cmkcppapp_MainActivity_InitKeyExchange(
         JNIEnv *env,
         jobject /* this */) {
     std::string filename = "etst";
+    //env->print_value(10);
     return env->NewStringUTF(filename.c_str());
 }
 

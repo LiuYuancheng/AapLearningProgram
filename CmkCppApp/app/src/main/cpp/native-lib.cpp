@@ -27,6 +27,11 @@ extern "C" JNIEXPORT jstring JNICALL
 Java_com_example_cmkcppapp_MainActivity_keyExchangeJNI(
         JNIEnv *env,
         jobject /* this */) {
-    std::string keyStr = "biXhp3Ha1fgxVEp48zHrvVoXMStmxPuAPHo3TVz5lHU=";
+    std::string keyStr = "uEe3T2YLQN3hf9lcYR5/BySWkCA7NOisoHTYPwL2nl=";
     return env->NewStringUTF(keyStr.c_str());
 }
+
+
+
+
+

@@ -1,5 +1,9 @@
 package com.example.ktfilereader
 
+import android.content.ClipData
+import android.content.ClipboardManager
+
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -10,15 +14,19 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.TextView
 import android.widget.Toast
+import androidx.core.content.ContextCompat.getSystemService
 import androidx.navigation.fragment.findNavController
 import com.android.samples.filemanager.getFilesList
 import com.android.samples.filemanager.getMimeType
 import java.io.File
 import java.io.FileInputStream
 
+
 /**
  * A simple [Fragment] subclass as the default destination in the navigation.
+ * https://developer.android.com/codelabs/build-your-first-android-app-kotlin#7
  */
 class FirstFragment : Fragment() {
 
@@ -37,6 +45,8 @@ class FirstFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        val clipboard = activity?.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+
 
         view.findViewById<Button>(R.id.random_button).setOnClickListener {
             findNavController().navigate(R.id.action_FirstFragment_to_SecondFragment)
@@ -49,15 +59,20 @@ class FirstFragment : Fragment() {
             // create a Toast with some text, to appear for a short time
             Log.d("TAG", ">>>>>>>>>>>>>>>>>>>>1")
             // openDirectory()
-            val file = File("/storage/emulated/0/Download/", "QS_Encryption_key.txt")
+            var keyStr = ""
+            val file = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS).toString(), "QS_Encryption_key.txt")
             FileInputStream(file).use { stream ->
                 val text = stream.bufferedReader().use {
                     it.readText()
                 }
+                keyStr = "$text"
                 Log.d("TAG", "LOADED: $text")
+                view.findViewById<TextView>(R.id.textview_first).text = "$text"
             }
 
-            val myToast = Toast.makeText(context, "Hello Toast!", Toast.LENGTH_SHORT)
+
+            keyStr = "uEe3T2YLQN3hf9lcYR5/BySWkCA7NOisoHTYPwL2dnl="
+            val myToast = Toast.makeText(context, keyStr, Toast.LENGTH_SHORT)
             // show the Toast
             myToast.show()
         }

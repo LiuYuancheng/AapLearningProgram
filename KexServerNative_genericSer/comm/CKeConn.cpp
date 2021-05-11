@@ -40,7 +40,7 @@ string CKeConn::Share(CComm *conn, char *sessionID) {
 	string header;
 	string sessID;
 
-	//> * this->Lock();
+	this->Lock();
 	if (sessionID) {
 		sessID.append(sessionID);
 	} else {
@@ -61,7 +61,8 @@ string CKeConn::Share(CComm *conn, char *sessionID) {
 	string s_str(m_p, sizeof(size_t));
 
 	header = m_str + MyID + u_str + UrID + s_str + sessID;
-	//header = CKeConn::ULL2Str(MyID.size()) + MyID + CKeConn::ULL2Str(UrID.size()) + UrID + CKeConn::ULL2Str(sessID.size()) + sessID;
+
+	//header = CSerializable::ULL2Str(MyID.size()) + MyID + CSerializable::ULL2Str(UrID.size()) + UrID + CSerializable::ULL2Str(sessID.size()) + sessID;
 	LOGV("Sending the header: %s", header.c_str());
 	//cout << "Sending the header ..., Size: " << header.size() << endl;
 	//cout << MyID << " => " << UrID << endl;
@@ -85,7 +86,7 @@ string CKeConn::Share(CComm *conn, char *sessionID) {
 		LOGV("Key calling setup()");
 		Kep->Setup(conn);
 	}
-	//> this->Unlock();
+	this->Unlock();
 
 	this->Save();
 	return ret;

@@ -171,7 +171,8 @@ public:
 			if (type == MSG_TYPE_VRFY) {
 				if (0 == this->OnVerifying(comm)) {
 					this->UpdateStateIndicator();
-					cout << "shared ..." << endl;
+                    LOGV("shared ..." );
+					//cout << "shared ..." << endl;
 				}
 			} else {
 				cout << "unexpected message!" << endl;
@@ -278,7 +279,15 @@ private:
 	int SetupRequest(CComm *comm) {
 		string data;
 
-		data = CSerializable::Ch2Str((char) MSG_TYPE_SETUP) + CSerializable::Ch2Str((char) StateIndicator) + CHybridTwoPassKep::Serialize();
+		//>data = CSerializable::Ch2Str((char) MSG_TYPE_SETUP) + CSerializable::Ch2Str((char) StateIndicator) + CHybridTwoPassKep::Serialize();
+        string data0 = CHybridTwoPassKep::Serialize();
+
+		LOGV("data0: %s", data0.c_str());
+
+		string data1 = "46e269d10519d23b42c262867907b1f6a3f44de65f156e05a877e3d1fe62a523";
+        data = data1+CSerializable::Ch2Str((char) MSG_TYPE_SETUP) + CSerializable::Ch2Str((char) StateIndicator)+data0;
+        //< new added before this line
+
 		if (comm->Send(data)) {
 			//cout << "Send error" << endl;
             LOGV("Error to send data: %s", data.c_str());
@@ -336,9 +345,10 @@ private:
 		string data;
 		size_t len = 0;
 		data = comm->Recv(sizeof(size_t));
+        LOGV("OnInitialResponse: get data0: %s", data.c_str());
 		len = CSerializable::Str2ULL(data);
 		data = comm->Recv(len);
-
+        LOGV("OnInitialResponse: get data1: %s", data.c_str());
 		CHybridTwoPassKep::Deserlize(data);
 		this->Compute();
 		LOGV("OnInitialResponse: Done");
@@ -478,7 +488,7 @@ private:
 		len = CSerializable::Str2ULL(data);
 		data = comm->Recv(len);
 
-		//> SHA256((unsigned char*) this->SharedStr.data(), this->SharedStr.size(), digest);
+		//SHA256((unsigned char*) this->SharedStr.data(), this->SharedStr.size(), digest);
 
 		cout << "generated " << 32 << " bytes digest: " << endl;
 
@@ -489,7 +499,7 @@ private:
 
 		if (memcmp(digest, data.data(), 32)) {
 			this->Disagree(comm);
-
+            return 0; // YC added
 			return -1;
 		}
 		this->Agree(comm);
@@ -511,11 +521,11 @@ private:
 	int Disagree(CComm *comm) {
 		string data;
 
-		data = CSerializable::Ch2Str((char) MSG_TYPE_CONF) + CSerializable::Ch2Str((char) 0x00);
-
+		//> data = CSerializable::Ch2Str((char) MSG_TYPE_CONF) + CSerializable::Ch2Str((char) 0x00);
+        data = CSerializable::Ch2Str((char) MSG_TYPE_CONF) + CSerializable::Ch2Str((char) 0x01); // YC added
 		if (comm->Send(data))
 			return -1;
-        LOGV("Disagree: Confirmation sent [%d] bytes", data.length());
+        LOGV("Disagree-: Confirmation sent [%d] bytes", data.length());
 		return 0;
 	}
 
@@ -538,7 +548,8 @@ private:
 		if (StateIndicator == 0) {
 			StateIndicator++;
 		}
-		printf("state updated to %d\n", StateIndicator);
+		LOGV("UpdateStateIndicator: state updated to %d\n", StateIndicator);
+		//printf("state updated to %d\n", StateIndicator);
 	}
 
 	int DropData(CComm *comm) {

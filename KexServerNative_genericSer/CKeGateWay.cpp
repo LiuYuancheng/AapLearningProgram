@@ -283,7 +283,7 @@ int CKeGateWay::ShareWith(char ID[], char sessionID[], string &sharedSecret) {
 	}
 
 	close(cli_fd);
-
+    LOGV("End Sharewith");
 	return 0;
 }
 
@@ -310,15 +310,19 @@ void CKeGateWay::OnShared(int fd) {
 	data = conn->Recv(sizeof(size_t));
 
 	len = CSerializable::Str2ULL(data);
-	cout << "+++++ len: " << len;
+	LOGV("+++++ len: %d", len);
+	//cout << "+++++ len: " << len;
 
 	string sessionID = conn->Recv(len);
-	cout << "++++++ len: " << sessionID.length();
+	//cout << "++++++ len: " << sessionID.length();
 
 	//LOG(INFO) << "SessionID: " << sessionID;
 	cout << "SessionID: " << sessionID << endl;
+	LOGV("SessionID: %s", sessionID.c_str());
 
-	//> keconn->OnSharing(conn, (char*) sessionID.c_str());
+
+
+	keconn->OnSharing(conn, (char*) sessionID.c_str());
 
 	string ss = keconn->Kep->SharedStr;
 
@@ -559,15 +563,15 @@ void* CKeGateWay::LocalUDPServer(void *arg) {
     //>>>> YC
 	//ret = bind(server_fd, (struct sockaddr*) &ser_addr, sizeof(ser_addr));
 	if (ret < 0) {
-		printf("UDP socket bind fail!\n");
+		LOGV("UDP socket bind fail!\n");
 		return NULL;
 	}
-	printf("UDP server started up at 0.0.0.0:9527\n");
+    LOGV("UDP server started up at 0.0.0.0:9527\n");
 	while (1) {
 		memset(buf, 0, BUFF_LEN);
 		len = sizeof(client_addr);
 		if ((count = recvfrom(server_fd, buf, BUFF_LEN, 0, (struct sockaddr*) &client_addr, &len)) < 0) {
-			printf("UDP socket recieve data fail! errno: %d\n", errno);
+            LOGV("UDP socket recieve data fail! errno: %d\n", errno);
 			continue;
 		}
 		cout << "UDP received data, size: " << count << endl;

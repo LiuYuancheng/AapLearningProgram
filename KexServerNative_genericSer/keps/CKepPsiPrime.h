@@ -50,12 +50,12 @@ private:
 		unsigned char *s = new unsigned char[SharedStr.length()];
 
 		LOGV("Kdf(): SharedStr: %s,length %d", SharedStr.data(),SharedStr.length());
-		LOGV("Kdf(): Addtional: %s", TwoPassKeps[StateIndicator - 1]->SharedStr.data());
-		//> PQCH_KDF_M257pX_SHA256((unsigned char*) SharedStr.data(), SharedStr.length(), s, (unsigned char*) TwoPassKeps[StateIndicator - 1]->SharedStr.data(), TwoPassKeps[StateIndicator - 1]->SharedStr.size());
+		LOGV("Kdf(): Addtional: %s,length %d", TwoPassKeps[StateIndicator - 1]->SharedStr.data(), TwoPassKeps[StateIndicator - 1]->SharedStr.length());
+		PQCH_KDF_M257pX_SHA256((unsigned char*) SharedStr.data(), SharedStr.length(), s, (unsigned char*) TwoPassKeps[StateIndicator - 1]->SharedStr.data(), TwoPassKeps[StateIndicator - 1]->SharedStr.size());
 
-		//> string temp((char*) s, 32);
+		string temp((char*) s, 32);
 
-		string temp = "This_is_a_hardcoded_shared_security_string_with_length=64_charac";// yc Added
+		//string temp = "This_is_a_hardcoded_shared_security_string_with_length=64_charac";// yc Added
 
 		delete[] s;
 		this->SharedStr = temp;
@@ -299,13 +299,13 @@ private:
 	int SetupRequest(CComm *comm) {
 		string data;
 
-		//> data = CSerializable::Ch2Str((char) MSG_TYPE_SETUP) + CSerializable::Ch2Str((char) StateIndicator) + CHybridTwoPassKep::Serialize();
-        string data0 = CHybridTwoPassKep::Serialize();
+		data = CSerializable::Ch2Str((char) MSG_TYPE_SETUP) + CSerializable::Ch2Str((char) StateIndicator) + CHybridTwoPassKep::Serialize();
+        //string data0 = CHybridTwoPassKep::Serialize();
 
-		LOGV("data0: %s", data0.c_str());
+		//LOGV("data0: %s", data0.c_str());
 
-		string data1 = "46e269d10519d23b42c262867907b1f6a3f44de65f156e05a877e3d1fe62a523";
-        data = data1+CSerializable::Ch2Str((char) MSG_TYPE_SETUP) + CSerializable::Ch2Str((char) StateIndicator)+data0;
+		//string data1 = "46e269d10519d23b42c262867907b1f6a3f44de65f156e05a877e3d1fe62a523";
+        //data = data1+CSerializable::Ch2Str((char) MSG_TYPE_SETUP) + CSerializable::Ch2Str((char) StateIndicator)+data0;
         //< new added before this line
 
 		if (comm->Send(data)) {

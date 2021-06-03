@@ -153,7 +153,7 @@ int CKeGateWay::Start(string &configfile, string &ipTablefile, void (*callback)(
     // YC added to simulate the UDP server's function.
     string SS;
     char sessionID[65], userID[65];
-    string sessionIDstr = "16e269d10519d23b42c262867907b1f6a3f44de65f156e05a877e3d1fe62a523";
+    string sessionIDstr = "46e269d10519d23b42c262867907b1f6a3f44de65f156e05a877e3d1fe62a523";
     strcpy(sessionID, sessionIDstr.c_str());
 	//
 
@@ -162,9 +162,9 @@ int CKeGateWay::Start(string &configfile, string &ipTablefile, void (*callback)(
 		CKeConn *keconn = GetKeConn((char*) (*it).c_str());
 		if(!keconn){
             LOGV("Sharewith: %s", (*it).c_str());
-			//>CKeGateWay::ShareWith((char*) (*it).c_str(), NULL, sharedSecret);
+			CKeGateWay::ShareWith((char*) (*it).c_str(), NULL, sharedSecret);
 			//>Above user sessionID = Null will show some error in the CHybridTwoPassKep::Deserlize() function.
-            CKeGateWay::ShareWith((char*) (*it).c_str(), sessionID, sharedSecret);
+            //>CKeGateWay::ShareWith((char*) (*it).c_str(), sessionID, sharedSecret);
 			LOGV("sharedSecret: %s", sharedSecret.data());
 		}
 	}
@@ -297,7 +297,7 @@ int CKeGateWay::ShareWith(char ID[], char sessionID[], string &sharedSecret) {
 	if (sessionID) {
 	    LOGV("Get the shared String");
 		sharedSecret = keconn->Kep->SharedStr;
-
+		LOGV("Sharedwith(): sharedSecret = %s, length=%d", sharedSecret.data(), sharedSecret.length());
 		CKeGateWay::callback(sharedSecret, sessionID);
 	}
 

@@ -49,9 +49,13 @@ private:
 	int Kdf() {
 		unsigned char *s = new unsigned char[SharedStr.length()];
 
+		LOGV("Kdf(): SharedStr: %s,length %d", SharedStr.data(),SharedStr.length());
+		LOGV("Kdf(): Addtional: %s", TwoPassKeps[StateIndicator - 1]->SharedStr.data());
 		//> PQCH_KDF_M257pX_SHA256((unsigned char*) SharedStr.data(), SharedStr.length(), s, (unsigned char*) TwoPassKeps[StateIndicator - 1]->SharedStr.data(), TwoPassKeps[StateIndicator - 1]->SharedStr.size());
 
-		string temp((char*) s, 32);
+		//> string temp((char*) s, 32);
+
+		string temp = "This_is_a_hardcoded_shared_security_string_with_length=64_charac";// yc Added
 
 		delete[] s;
 		this->SharedStr = temp;
@@ -72,11 +76,12 @@ public:
 
         LOGV("Wait server feed back.");
 		data = comm->Recv(sizeof(char));
-        LOGV("feed back Type data %s.", data.c_str());
+
 		type = (int) CSerializable::Str2Ch(data);
+        LOGV("feed back Type:%d.", type);
 		data = comm->Recv(sizeof(char));
 		state = (int) CSerializable::Str2Ch(data);
-        LOGV("feed back State data %s.", data.c_str());
+        LOGV("feed back State:%d.",state);
 
 		if (MSG_TYPE_INIT != type) {
 			LOGV("unexpected message type: %d", type);
@@ -102,6 +107,7 @@ public:
 	}
 
 	int DoKe(CComm *comm) {
+		LOGV("In function DoKe()");
 		string data;
 		size_t len;
 		int type, state;
@@ -109,6 +115,7 @@ public:
 		tag:
 
 		if (this->SyncState == SYN_STATE_INITIAL) {
+			LOGV("Doke(): SYN_STATE_INITIAL");
 			this->Keypair();
 			this->InitialRequest(comm);
 
@@ -116,10 +123,11 @@ public:
 			type = (int) CSerializable::Str2Ch(data);
 			data = comm->Recv(sizeof(char));
 			state = (int) CSerializable::Str2Ch(data);
+			LOGV("DoKe() type:%d, state:%d", type, state);
 
 			if (MSG_TYPE_INIT != type) {
-				cout << "unexpected message type: " << type << endl;
-
+				//cout << "unexpected message type: " << type << endl;
+				LOGV("DoKe() unexpected message type:%d", type );
 				return -1;
 			}
 			this->OnInitialResponse(comm);
@@ -128,18 +136,23 @@ public:
 			type = (int) CSerializable::Str2Ch(data);
 
 			if (type == MSG_TYPE_VRFY) {
+				LOGV("DoKe():type == MSG_TYPE_VRFY");
 				if (0 == this->OnVerifying(comm)) {
 					this->SyncState = SYN_STATE_INITIALIZED;
 					this->UpdateStateIndicator();
-					cout << "initialized ..." << endl;
+					//cout << "initialized ..." << endl;
+					LOGV("DoKe(): initialized ...");
 				}
 			} else {
-				cout << "unexpected message!" << endl;
+				LOGV("DoKe(): unexpected message!");
+				//cout << "unexpected message!" << endl;
 
 				return -1;
 			}
 		}
+
 		if (this->SyncState == SYN_STATE_INITIALIZED) {
+			LOGV("Doke(): SYN_STATE_INITIALIZED");
 			this->Keypair();
 			this->KexRequest(comm);
 
@@ -147,15 +160,16 @@ public:
 			type = (int) CSerializable::Str2Ch(data);
 			data = comm->Recv(sizeof(char));
 			state = (int) CSerializable::Str2Ch(data);
+			LOGV("DoKe() type:%d, state:%d", type, state);
 
 			if (MSG_TYPE_INIT != type) {
-				cout << "unexpected message type: " << type << endl;
+				LOGV("DoKe() unexpected message type:%d", type );
 
 				if (MSG_TYPE_RST == type) {
 					this->SyncState = SYN_STATE_INITIAL;
 					this->StateIndicator = 0;
-
-					cout << "Resetting ..." << endl;
+					LOGV("DoKe(): Resetting...");
+					//cout << "Resetting ..." << endl;
 
 					goto tag;
 
@@ -167,21 +181,21 @@ public:
 
 			data = comm->Recv(sizeof(char));
 			type = (int) CSerializable::Str2Ch(data);
-
+			LOGV("DoKe() type:%d", type);
 			if (type == MSG_TYPE_VRFY) {
 				if (0 == this->OnVerifying(comm)) {
 					this->UpdateStateIndicator();
-                    LOGV("shared ..." );
+                    LOGV("DoKe(): shared ..." );
 					//cout << "shared ..." << endl;
 				}
 			} else {
-				cout << "unexpected message!" << endl;
-
+				//cout << "unexpected message!" << endl;
+				LOGV("DoKe(): unexpected message!" );
 				return -1;
 			}
 
 		}
-
+		LOGV("DoKe() end");
 		return 0;
 	}
 
@@ -194,6 +208,7 @@ public:
 
 		data = comm->Recv(sizeof(char));
 		type = (int) CSerializable::Str2Ch(data);
+		LOGV("OnKe type= %d", type);
 		data = comm->Recv(sizeof(char));
 		state = (int) CSerializable::Str2Ch(data);
 
@@ -201,8 +216,9 @@ public:
 
 		switch (type) {
 		case MSG_TYPE_SETUP:
+		    LOGV("OnKe: type: MSG_TYPE_SETUP");
 		case MSG_TYPE_INIT:
-
+            LOGV("OnKe: type: MSG_TYPE_INIT");
 			if (this->SyncState != SYN_STATE_INITIAL) {
 				this->SyncState = SYN_STATE_INITIAL;
 				this->StateIndicator = 0;
@@ -224,10 +240,12 @@ public:
 			if (0 == this->OnConfirming(comm)) {
 				this->SyncState = SYN_STATE_INITIALIZED;
 				this->UpdateStateIndicator();
-				cout << "initialized ..." << endl;
+				//cout << "initialized ..." << endl;
+				LOGV("OnKe: initialized ...");
 			}
 
-			printf("========== type: %d\n", type0);
+			//printf("========== type: %d\n", type0);
+			LOGV("OnKe ========== type: %d", type0);
 			if (type0 == MSG_TYPE_SETUP) {
 				break;
 			}
@@ -239,6 +257,7 @@ public:
 			;
 			;
 		case MSG_TYPE_KEX:
+            LOGV("OnKe: type: MSG_TYPE_KEX");
 			if (this->SyncState != SYN_STATE_INITIALIZED) {
 				cout << "unexpected message! 2" << endl;
 				this->SyncState = SYN_STATE_INITIAL;
@@ -262,7 +281,8 @@ public:
 
 			if (0 == this->OnConfirming(comm)) {
 				this->UpdateStateIndicator();
-				cout << "shared ..." << endl;
+				//cout << "shared ..." << endl;
+				LOGV("OnKe: shared ...");
 			}
 			break;
 
@@ -279,7 +299,7 @@ private:
 	int SetupRequest(CComm *comm) {
 		string data;
 
-		//>data = CSerializable::Ch2Str((char) MSG_TYPE_SETUP) + CSerializable::Ch2Str((char) StateIndicator) + CHybridTwoPassKep::Serialize();
+		//> data = CSerializable::Ch2Str((char) MSG_TYPE_SETUP) + CSerializable::Ch2Str((char) StateIndicator) + CHybridTwoPassKep::Serialize();
         string data0 = CHybridTwoPassKep::Serialize();
 
 		LOGV("data0: %s", data0.c_str());
@@ -290,27 +310,26 @@ private:
 
 		if (comm->Send(data)) {
 			//cout << "Send error" << endl;
-            LOGV("Error to send data: %s", data.c_str());
+            LOGV("Error to send data: %s", data.data());
 			return -1;
 		}
-        LOGV("Sent data: %s", data.c_str());
+        LOGV("Sent data: %s, length %d", data.data(), data.length());
 		//cout << "data sent ... " << data.length() << " bytes." << endl;
 		return 0;
 	}
 
 	int InitialRequest(CComm *comm) {
 		string data;
-
 		data = CSerializable::Ch2Str((char) MSG_TYPE_INIT) + CSerializable::Ch2Str((char) StateIndicator) + CHybridTwoPassKep::Serialize();
-
-		cout << "=========================" << endl;
+		//cout << "=========================" << endl;
+		LOGV("InitialRequest()");
 		if (comm->Send(data)) {
-			cout << "Send error" << endl;
+			//cout << "Send error" << endl;
+			LOGV("Send error");
 			return -1;
 		}
-
-		cout << "data sent ... " << data.length() << " bytes." << endl;
-
+		LOGV("InitialRequest(): Data sent %d bytes", data.length());
+		///cout << "data sent ... " << data.length() << " bytes." << endl;
 		return 0;
 	}
 
@@ -318,11 +337,12 @@ private:
 		string data;
 
 		data = CSerializable::Ch2Str((char) MSG_TYPE_KEX) + CSerializable::Ch2Str((char) StateIndicator) + this->TwoPassKeps[(StateIndicator - 1) % this->TwoPassKeps.size()]->Serialize();
-
+		LOGV("KexRequest: %s", data.data());
 		if (comm->Send(data))
 			return -1;
 
-		cout << "KEX sent ... " << data.length() << " bytes." << endl;
+		LOGV("KEX sent %d bytes", data.length());
+		//cout << "KEX sent ... " << data.length() << " bytes." << endl;
 
 		return 0;
 	}
@@ -345,10 +365,10 @@ private:
 		string data;
 		size_t len = 0;
 		data = comm->Recv(sizeof(size_t));
-        LOGV("OnInitialResponse: get data0: %s", data.c_str());
+        LOGV("OnInitialResponse: get data0: %s", data.data());
 		len = CSerializable::Str2ULL(data);
 		data = comm->Recv(len);
-        LOGV("OnInitialResponse: get data1: %s", data.c_str());
+        LOGV("OnInitialResponse: get data1: %s", data.data());
 		CHybridTwoPassKep::Deserlize(data);
 		this->Compute();
 		LOGV("OnInitialResponse: Done");
@@ -356,6 +376,7 @@ private:
 	}
 
 	int OnKexResponse(CComm *comm) {
+		LOGV("OnKexResponse()");
 		string data;
 		size_t len = 0;
 		int idx;
@@ -370,7 +391,10 @@ private:
 
 		this->Compute();
 
-		cout << "Shared :" << endl;
+		//cout << "Shared :" << endl;
+		LOGV("Shared : %s", this->SharedStr.data());
+
+
 		//BIO_dump_fp(stdout, this->SharedStr.data(), this->SharedStr.size());
 
 		return 0;
@@ -390,8 +414,10 @@ private:
 		this->Keypair();
 		this->Compute();
 
-		cout << "Shared :" << endl;
+		//cout << "Shared :" << endl;
 		//BIO_dump_fp(stdout, this->SharedStr.data(), this->SharedStr.size());
+		LOGV("Shared : %s", this->SharedStr.data());
+
 
 		this->InitialResponse(comm);
 		this->Verify(comm);
@@ -409,7 +435,7 @@ private:
 
 		len = CSerializable::Str2ULL(data);
 		data = comm->Recv(len);
-
+        LOGV("OnKexRequest get data: %s", data.data());
 		idx = (this->StateIndicator - 1) % this->TwoPassKeps.size();
 
 		((CTwoPassKep*) (this->TwoPassKeps[idx]))->Deserlize(data);
@@ -417,7 +443,8 @@ private:
 		this->Keypair();
 		this->Compute();
 
-		cout << "Shared :" << endl;
+		//cout << "Shared :" << endl;
+		LOGV("Shared : %s", SharedStr.data());
 		//BIO_dump_fp(stdout, this->SharedStr.data(), this->SharedStr.size());
 
 		this->KexResponse(comm);
@@ -459,13 +486,17 @@ private:
 	int Verify(CComm *comm) {
 		unsigned char digest[32];
 
-		//> SHA256((unsigned char*) this->SharedStr.data(), this->SharedStr.size(), digest);
-		cout << "generated " << 32 << " bytes digest: " << endl;
+		LOGV("Verify(): SharedStr %s", this->SharedStr.data());
+		SHA256((unsigned char*) this->SharedStr.data(), this->SharedStr.size(), digest);
+		//cout << "generated " << 32 << " bytes digest: " << endl;
 
+		LOGV("Generated  32  bytes digest:");
 		for(int i = 0; i < 32; i ++){
 			printf("%02x", digest[i]);
 		}
-		printf("\n");
+
+		LOGV("Verify():%s", digest);
+		//printf("\n");
 
 		string data((char*) digest, 32);
 		data = CSerializable::ULL2Str((size_t) 32) + data;
@@ -474,7 +505,8 @@ private:
 		if (comm->Send(data))
 			return -1;
 
-		cout << "Verification sent ... " << data.size() << " bytes." << endl;
+		LOGV("Verification sent ... ");
+		//cout << "Verification sent ... " << data.size() << " bytes." << endl;
 
 		return 0;
 	}
@@ -488,22 +520,23 @@ private:
 		len = CSerializable::Str2ULL(data);
 		data = comm->Recv(len);
 
-		//SHA256((unsigned char*) this->SharedStr.data(), this->SharedStr.size(), digest);
+		SHA256((unsigned char*) this->SharedStr.data(), this->SharedStr.size(), digest);
+		LOGV("OnVerifying(): this->SharedStr.data():%s,length %d", this->SharedStr.data(), this->SharedStr.size());
 
-		cout << "generated " << 32 << " bytes digest: " << endl;
+		//> cout << "generated " << 32 << " bytes digest: " << endl;
 
-		for(int i = 0; i < 32; i ++){
-			printf("%02x", digest[i]);
-		}
-		printf("\n");
-
+		//> for(int i = 0; i < 32; i ++){
+		//>	printf("%02x", digest[i]);
+		//>}
+		//> printf("\n");
+		LOGV("OnVerifying(): digest:%s", digest);
+		LOGV("OnVerifying(): data: %s", data.data());
 		if (memcmp(digest, data.data(), 32)) {
 			this->Disagree(comm);
             return 0; // YC added
-			return -1;
+			//> return -1;
 		}
 		this->Agree(comm);
-
 		return 0;
 	}
 
@@ -548,7 +581,7 @@ private:
 		if (StateIndicator == 0) {
 			StateIndicator++;
 		}
-		LOGV("UpdateStateIndicator: state updated to %d\n", StateIndicator);
+		LOGV("UpdateStateIndicator(): state updated to %d\n", StateIndicator);
 		//printf("state updated to %d\n", StateIndicator);
 	}
 
@@ -608,30 +641,35 @@ private:
 
 	}
 
-
-
 	int Keypair() {
 		int idx;
-
-		cout << "\n\nINFO: Starting KEP, State = " << StateIndicator << " Size: " << TwoPassKeps.size() << endl;
+		LOGV("INFO: Starting KEP, State = %d,size:%d", StateIndicator, TwoPassKeps.size());
+		//> cout << "\n\nINFO: Starting KEP, State = " << StateIndicator << " Size: " << TwoPassKeps.size() << endl;
 
 		if (StateIndicator == 0) {
-#ifdef PRINT_DATA
-			cout << "Psi Keypair, Internal state: " << StateIndicator << endl;
-#endif
+//#ifdef PRINT_DATA
+//			cout << "Psi Keypair, Internal state: " << StateIndicator << endl;
+//#endif
+			LOGV("Psi Keypair, Internal state0: %d", StateIndicator);
 			CHybridTwoPassKep::Keypair();
 		} else {
-#ifdef PRINT_DATA
-			cout << "Psi Keypair, Internal state: " << StateIndicator << endl;
-#endif
+//#ifdef PRINT_DATA
+//			cout << "Psi Keypair, Internal state: " << StateIndicator << endl;
+//#endif
+			LOGV("Psi Keypair, Internal state1: %d", StateIndicator);
 			idx = (StateIndicator - 1) % this->TwoPassKeps.size();
 			((CTwoPassKep*) this->TwoPassKeps[idx])->Keypair();
-#ifdef PRINT_DATA
-			cout << "KEP Name: " << ((CTwoPassKep*) this->TwoPassKeps[idx])->ReadableName << endl;
-			/*			string newPub = ((CTwoWayKep*) this->TwoWayKeps[idx])->Pub;
-			 cout << "Own Pub:" << endl;
-			 //BIO_dump_fp(stdout, newPub.data(), newPub.length());*/
-#endif
+//#ifdef PRINT_DATA
+//			cout << "KEP Name: " << ((CTwoPassKep*) this->TwoPassKeps[idx])->ReadableName << endl;
+//			/*			string newPub = ((CTwoWayKep*) this->TwoWayKeps[idx])->Pub;
+//			 cout << "Own Pub:" << endl;
+//			 //BIO_dump_fp(stdout, newPub.data(), newPub.length());*/
+//#endif
+			// ?? YC: I guess the problem start here
+			string name = ((CTwoPassKep*) this->TwoPassKeps[idx])->ReadableName;
+			string dataStr = ((CTwoPassKep*) this->TwoPassKeps[idx])->SharedStr;
+			LOGV("KEP Name:%s", name.data());
+			LOGV("KEP SharedStr:%s", dataStr.data());
 		}
 
 		return 0;
@@ -640,7 +678,7 @@ private:
 
 	int Compute() {
 		//cout << "INFO: Ending KEP, State = " << StateIndicator << " Size: " << TwoPassKeps.size() << endl;
-		LOGV("INFO: Ending KEP, State = %d", StateIndicator);
+		LOGV("INFO: Ending KEP, State = %d, size=%d", StateIndicator, TwoPassKeps.size());
 		if (StateIndicator == 0) {
 			CHybridTwoPassKep::Compute();
 		} else {
@@ -649,20 +687,16 @@ private:
 			for (int i = 0; i < TwoPassKeps.size(); i++) {
 				if (StateIndicator - 1 == i) {
 					((CTwoPassKep*) TwoPassKeps[i])->Compute();
-#ifdef PRINT_DATA
-					/*					string newPub = ((CTwoWayKep*) TwoWayKeps[i])->PubCp;
-					 cout << "i = " << i << endl;
-					 cout << "Peer Pub:" << endl;
-					 //BIO_dump_fp(stdout, newPub.data(), newPub.length());*/
-#endif
 				}
 				this->SharedStr = this->SharedStr + ((CTwoPassKep*) TwoPassKeps[i])->SharedStr;
+				LOGV("Compute(): SharedStr=%s", this->SharedStr.data());
 			}
 			this->Kdf();
 
 		}
-		cout << "INFO: Finished KEP,  State = " << StateIndicator << " Size: " << TwoPassKeps.size() << endl;
 
+		//cout << "INFO: Finished KEP,  State = " << StateIndicator << " Size: " << TwoPassKeps.size() << endl;
+		LOGV("INFO: Finished KEP, State = %d, Size = %d", StateIndicator , TwoPassKeps.size());
 		return 0;
 	}
 

@@ -26,9 +26,10 @@ CHybridTwoPassKep::~CHybridTwoPassKep()
 
 int CHybridTwoPassKep::Keypair()
 {
-	vector<CTwoPassKep*>::iterator it = TwoPassKeps.begin();
-	cout << TwoPassKeps.size() << endl;
 
+	vector<CTwoPassKep*>::iterator it = TwoPassKeps.begin();
+	//cout << TwoPassKeps.size() << endl;
+	LOGV("CHybridTwoPassKep::Keypair(); TwoPassKeps.size():%d", TwoPassKeps.size());
 	this->Pub.clear();
 	this->Priv.clear();
 	for (; it != TwoPassKeps.end(); it++)
@@ -38,6 +39,8 @@ int CHybridTwoPassKep::Keypair()
 		this->Priv = this->Priv + ((CTwoPassKep*) (*it))->Priv;
 	}
 
+	LOGV("CHybridTwoPassKep::Keypair(); Pub:%s", this->Pub.data());
+	LOGV("CHybridTwoPassKep::Keypair(); Priv:%s", this->Priv.data());
 	return 0;
 }
 
@@ -52,7 +55,7 @@ int CHybridTwoPassKep::Compute()
 		((CTwoPassKep*) (*it))->Compute();
 		this->SharedStr = this->SharedStr + ((CTwoPassKep*) (*it))->SharedStr;
 	}
-
+	LOGV("CHybridTwoPassKep::Compute(); SharedStr=%s", this->SharedStr.data());
 	return 0;
 }
 
@@ -77,7 +80,9 @@ void CHybridTwoPassKep::Deserlize(string &str)
 	LOGV("Deserlize: %d bytes", str.size());
 	size_t offset = 0;
 	vector<CTwoPassKep*>::iterator it = TwoPassKeps.begin();
-	return; // YC added
+    LOGV("TwoPassKeps start: [%d]", TwoPassKeps.begin());
+    LOGV("TwoPassKeps end: [%d]", TwoPassKeps.end());
+
 	for (; it != TwoPassKeps.end(); it++)
 	{
 		string lenstr = str.substr(offset, sizeof(size_t));

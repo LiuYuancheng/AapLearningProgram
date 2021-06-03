@@ -40,14 +40,11 @@ public:
 private:
 	static CKeConn* GetKeConn(char *gwid) {
 		list<CKeConn*>::iterator it = KeConns.begin();
-
 		while (it != KeConns.end()) {
-//			cout<<"search === "<<(*it)->UrID<<endl;
 			if ((*it)->UrID.compare(gwid) == 0)
 				return *it;
 			it ++;
 		}
-
 		return NULL;
 	}
 

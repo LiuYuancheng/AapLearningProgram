@@ -10,6 +10,9 @@
 
 #include <iostream>
 #include <string>
+#include <android/log.h>
+#define LOGV(...) __android_log_print(ANDROID_LOG_WARN, "CTwoWayKep.h", __VA_ARGS__)
+
 
 using namespace std;
 
@@ -31,6 +34,7 @@ public:
 	virtual void Deserlize(string &str)
 	{
 		PubCp = str;
+		LOGV("CTwoWayKep.h:Deserlize()L pubcp=%s",PubCp.data());
 	}
 
 public:

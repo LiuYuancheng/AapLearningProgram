@@ -26,11 +26,10 @@
 #include <netdb.h>
 #include <stdio.h>
 #include <string.h>
-#include <stdlib.h>
 #include <unistd.h>
 #include <errno.h>
 #include <arpa/inet.h>
-
+#include <netinet/in.h>
 
 #include "keps/CKepPsiPrime.h"
 #include "lower_keps/CHybridTwoPassKep.h"
@@ -39,6 +38,8 @@
 
 #include <android/log.h>
 #define LOGV(...) __android_log_print(ANDROID_LOG_WARN, "CkeGateway", __VA_ARGS__)
+
+
 
 //string CKeGateWay::OwnID;
 //int CKeGateWay::GWMode;
@@ -49,6 +50,9 @@ CComm *CKeGateWay::Comm;
 int CKeGateWay::SerSocket;
 int CKeGateWay::UDPSerSocket;
 int CKeGateWay::PresetStatusFlag;
+//extern void randombytes_init(const unsigned char* entropy_input,
+//						const unsigned char* personalization_string,
+//						int security_strength);
 
 void (*CKeGateWay::callback)(string, string) = NULL;
 
@@ -87,18 +91,9 @@ void CKeGateWay::RegisterEvent() {
 	sigaction(SIGINT, &sigHandler, NULL);
 }
 
-// >> copied from the file /home/yc/Project/KeyExchangeApp/app/src/main/cpp/NIST_PQC_Round_2/KEM/NTS-KEM/nts_kem_12_64/random.c.bak
-void randombytes_init(const unsigned char* entropy_input,
-					  const unsigned char* personalization_string,
-					  int security_strength)
-{
-	/* A place-holder, not doing anything unless it's NIST AES-DRBG */
-}
-
 int CKeGateWay::Start2(string &configfile, string &ipTablefile, void (*callback)(string, string)){
     return 0;
 }
-
 
 // > main program to
 int CKeGateWay::Start(string &configfile, string &ipTablefile, void (*callback)(string, string)) {
@@ -112,7 +107,8 @@ int CKeGateWay::Start(string &configfile, string &ipTablefile, void (*callback)(
 	string addr = CKeGateWay::Config.IpTable.at(CKeGateWay::Config.ID);
 
 
-	cout << "addr = " << addr << endl;
+	//cout << "addr = " << addr << endl;
+	LOGV("CKeGateWay::Start(); addr=%s", addr.data());
 	size_t pos = addr.find_first_of(':');
 
 	string ipaddr = addr.substr(0, pos);
@@ -127,6 +123,7 @@ int CKeGateWay::Start(string &configfile, string &ipTablefile, void (*callback)(
     arg->IPaddr = "192.168.1.15";
     arg->port = 9099;
 
+    // YC added: todo figure out when the call back is called.
     arg->callback = CKeGateWay::OnShared;
 	arg->Socketfd = &CKeGateWay::SerSocket;
 
@@ -145,23 +142,42 @@ int CKeGateWay::Start(string &configfile, string &ipTablefile, void (*callback)(
 	char randbytes[20] = { 0 };
 	srand((unsigned) time(NULL));
 	sprintf(randbytes, "%d", rand());
+
+	//> ShiJing's mbed.a got a function error so temporary we disable the randombytes init here.
 	//> randombytes_init((unsigned char*) randbytes, (unsigned char*) "kep", 256);
-	//> CKeGateWay::Recover();
+	CKeGateWay::Recover();
 
 	string sharedSecret;
 	list<string>::iterator it;
 
+    // YC added to simulate the UDP server's function.
+    string SS;
+    char sessionID[65], userID[65];
+    string sessionIDstr = "16e269d10519d23b42c262867907b1f6a3f44de65f156e05a877e3d1fe62a523";
+    strcpy(sessionID, sessionIDstr.c_str());
+	//
 
-    LOGV("Start shareing");
+    LOGV("Start sharing loop");
 	for (it = CKeGateWay::Config.AutoInitPeers.begin(); it != CKeGateWay::Config.AutoInitPeers.end(); it++) {
 		CKeConn *keconn = GetKeConn((char*) (*it).c_str());
 		if(!keconn){
             LOGV("Sharewith: %s", (*it).c_str());
-			CKeGateWay::ShareWith((char*) (*it).c_str(), NULL, sharedSecret);
+			//>CKeGateWay::ShareWith((char*) (*it).c_str(), NULL, sharedSecret);
+			//>Above user sessionID = Null will show some error in the CHybridTwoPassKep::Deserlize() function.
+            CKeGateWay::ShareWith((char*) (*it).c_str(), sessionID, sharedSecret);
+			LOGV("sharedSecret: %s", sharedSecret.data());
 		}
 	}
+    // YC added
+	LOGV("Create the key file:");
 
-	return 0;
+    //string peerID = "9ae159b6026bc7477f805d5f0ed18ca396402d447e59895f7d4ee1c0782e4655";
+	string peerID = "46e269d10519d23b42c262867907b1f6a3f44de65f156e05a877e3d1fe62a52b";
+	strcpy(userID, peerID.c_str());
+    CKeGateWay::ShareWith((char*) userID, (char*) sessionID, SS);
+
+	LOGV("FoundSS: %s", SS.data());
+    return 0;
 }
 
 int CKeGateWay::Recover() {
@@ -226,16 +242,17 @@ int CKeGateWay::Stop() {
 
 int CKeGateWay::ShareWith(char ID[], char sessionID[], string &sharedSecret) {
 
-	LOGV("Starting a Key Exchange request");
+	LOGV("CKeGateWay::ShareWith(): Starting a Key Exchange request");
+    //LOGV("CKeGateWay::ShareWith(): ID = %s", ID);
 	if (sessionID != NULL) {
 		LOGV("SessionID: %s", sessionID);
 	} else {
 		LOGV("presetting");
 	}
-	CKeConn *keconn = GetKeConn(ID);
+	CKeConn *keconn = GetKeConn(ID); // Check whether the ID's key communication exist.
 
 	if (keconn == NULL) {
-		LOGV("Init Post Quantum Key Exchange Algo.");
+		LOGV("Init Post Quantum Key Exchange Algo ID: %s", ID);
 		string dstId((char*) ID);
 		CKeGateWay::InitializePsiPrime(dstId);
 		keconn = GetKeConn(ID);
@@ -243,18 +260,18 @@ int CKeGateWay::ShareWith(char ID[], char sessionID[], string &sharedSecret) {
 
 
 	CTcpComm *conn = new CTcpComm();
-
 	string addr = CKeGateWay::Config.IpTable.at(ID);
 
-	//int cli_fd = 0, retrylimit = 10;
-	int cli_fd = 0, retrylimit = 4;
-	cout<<"connect to "<<CTcpComm::GetSocketAddrIP(addr)<<":"<<CTcpComm::GetSocketAddrPort(addr)<<endl;
+	//> int cli_fd = 0, retrylimit = 10;
+	int cli_fd = 0, retrylimit = 4; // yc added
 
-	cli_fd = CTcpComm::Connect((char*) CTcpComm::GetSocketAddrIP(addr).c_str(), CTcpComm::GetSocketAddrPort(addr));
+	//cout<<"connect to "<<CTcpComm::GetSocketAddrIP(addr)<<":"<<CTcpComm::GetSocketAddrPort(addr)<<endl;
+    LOGV("Connect to %s:%d", CTcpComm::GetSocketAddrIP(addr).data(), CTcpComm::GetSocketAddrPort(addr));
 
+    cli_fd = CTcpComm::Connect((char*) CTcpComm::GetSocketAddrIP(addr).c_str(), CTcpComm::GetSocketAddrPort(addr));
+	LOGV("cli_fd=%d", cli_fd);
 
-
-	cout<<"cli_fd = "<<cli_fd<<endl;
+	//cout<<"cli_fd = "<<cli_fd<<endl;
 
 
 	while (cli_fd < 0 && retrylimit > 0) {
@@ -278,12 +295,15 @@ int CKeGateWay::ShareWith(char ID[], char sessionID[], string &sharedSecret) {
 	keconn->Share(conn, sessionID);
 
 	if (sessionID) {
+	    LOGV("Get the shared String");
 		sharedSecret = keconn->Kep->SharedStr;
+
 		CKeGateWay::callback(sharedSecret, sessionID);
 	}
 
 	close(cli_fd);
     LOGV("End Sharewith");
+
 	return 0;
 }
 
@@ -561,8 +581,12 @@ void* CKeGateWay::LocalUDPServer(void *arg) {
 	ser_addr.sin_addr.s_addr = htonl(INADDR_ANY); //IP地址，需要进行网络序转换，INADDR_ANY：本地地址
 	ser_addr.sin_port = htons(9527);  //端口号，需要网络序转换
     //>>>> YC
-	//ret = bind(server_fd, (struct sockaddr*) &ser_addr, sizeof(ser_addr));
-	if (ret < 0) {
+    //ret = bind(server_fd, (const struct sockaddr *)&ser_addr, sizeof(ser_addr));
+
+
+    //> ret = bind(server_fd, (struct sockaddr*) &ser_addr, sizeof(ser_addr));
+
+	if (ret< 0) {
 		LOGV("UDP socket bind fail!\n");
 		return NULL;
 	}

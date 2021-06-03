@@ -172,12 +172,12 @@ void CTcpComm::Reset() {
  */
 
 int CTcpComm::Send(string &data) {
-	cout << "fd: " << this->fd << endl;
-
+	//cout << "fd: " << this->fd << endl;
+	LOGV("fd:%d",this->fd);
 	size_t m = this->Write(this->fd, data), m0;
 
-	cout << "INFO: Written: " << m << " bytes." << endl;
-
+	//cout << "INFO: Written: " << m << " bytes." << endl;
+	LOGV("INFO: Written: %d bytes", m);
 	if ((m0 = data.length()) != m) {
 		printf("Send: Written %d/%d\n", m0, m);
 		return -1;

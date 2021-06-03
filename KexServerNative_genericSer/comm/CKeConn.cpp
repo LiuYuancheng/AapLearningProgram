@@ -47,39 +47,42 @@ string CKeConn::Share(CComm *conn, char *sessionID) {
 		char zeros[64] = { 0 };
 		sessID.append(zeros);
 	}
-
+	LOGV("CKeConn::Share: sessID:%s", sessID.data());
 	size_t m_n = MyID.size();
 	char *m_p = (char*) &m_n;
 	string m_str(m_p, sizeof(size_t));
 
 	size_t u_n = UrID.size();
 	char *u_p = (char*) &u_n;
-	string u_str(m_p, sizeof(size_t));
+	string u_str(u_p, sizeof(size_t));
 
 	size_t s_n = sessID.size();
 	char *s_p = (char*) &s_n;
-	string s_str(m_p, sizeof(size_t));
+	string s_str(s_p, sizeof(size_t));
 
 	header = m_str + MyID + u_str + UrID + s_str + sessID;
 
-	//header = CSerializable::ULL2Str(MyID.size()) + MyID + CSerializable::ULL2Str(UrID.size()) + UrID + CSerializable::ULL2Str(sessID.size()) + sessID;
-	LOGV("Sending the header: %s", header.c_str());
+	string calculateheader = CSerializable::ULL2Str(MyID.size()) + MyID + CSerializable::ULL2Str(UrID.size()) + UrID + CSerializable::ULL2Str(sessID.size()) + sessID;
+	LOGV("Calculate header: %s, length:%d", calculateheader.data(), calculateheader.length());
+	LOGV("Sending the header: %s length:%d", header.data(), header.length());
 	//cout << "Sending the header ..., Size: " << header.size() << endl;
 	//cout << MyID << " => " << UrID << endl;
-	LOGV("MyID: %s", MyID.c_str());
-	LOGV("UrID: %s", UrID.c_str());
-	conn->Send(header);
+	LOGV("MyID: %s => %s", MyID.c_str(), UrID.c_str());
+	//> conn->Send(header);
+    conn->Send(calculateheader);
 	//cout << "Sent the header." << endl;
 	LOGV("Sent the header.");
+
 	if (sessionID) { // sessionID must be NULL if setup is to be conducted.
+		LOGV("CKeConn::Session ID 0: %s", sessionID);
 		Kep->DoKe(conn);
 		this->OldSessionID = this->SessionID;
 		this->OldSS = this->SS;
 		this->SessionID = sessID;
 		ret = this->SS = Kep->SharedStr;
-		cout << "Session set." << endl;
-		cout << "Session ID: " << this->SessionID << endl;
-
+		//cout << "Session set." << endl;
+		//cout << "Session ID: " << this->SessionID << endl;
+		LOGV("CKeConn::Session ID 1:", this->SessionID.data());
 		//cout << "Shared Secret: " << CSerializable::Str2Hex(this->SS) << endl;
 
 	} else {
@@ -101,7 +104,7 @@ string CKeConn::OnSharing(CComm *conn, char *sessionID) {
 	this->SS = Kep->SharedStr;
 	this->Unlock();
 	this->Save();
-
+	LOGV("CKeConn::OnSharing return");
 	return this->SS;
 }
 

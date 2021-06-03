@@ -11,6 +11,10 @@
 #include "../../generic_service/lower_keps/CTwoPassKep.h"
 #include "CKemTwoPassKep.h"
 
+#include <android/log.h>
+#define LOGV(...) __android_log_print(ANDROID_LOG_WARN, "CKemTwoWayKep.cpp", __VA_ARGS__)
+
+
 CKemTwoPassKep::CKemTwoPassKep(CKem *mykem, CKem *urkem)
 {
 	this->MyKem = mykem;
@@ -38,7 +42,8 @@ int CKemTwoPassKep::Keypair()
 	UrKem->Encaps();
 	Pub = UrKem->CipherText;
 	Priv = UrKem->SharedStr;
-
+	LOGV("CKemTwoPassKep::Keypair(); Pub=%s", Pub.data());
+	LOGV("CKemTwoPassKep::Keypair(); Priv=%s", Priv.data());
 	return 0;
 }
 int CKemTwoPassKep::Compute()

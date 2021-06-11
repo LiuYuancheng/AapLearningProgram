@@ -29,9 +29,11 @@ type handshake struct {
 func ExampleEncodeToString() {
 	src := []byte("Go is an open source programming language.")
 
+	orgStr := hex.EncodeToString(src)
+	fmt.Printf("%s\n", orgStr)
+
 	var a [32]byte
 	copy(a[:], src)
-
 
 	s := handshake{a}
 

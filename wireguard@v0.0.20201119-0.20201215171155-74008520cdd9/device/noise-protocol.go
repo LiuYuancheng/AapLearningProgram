@@ -6,6 +6,7 @@
 package device
 
 import (
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"sync"
@@ -119,15 +120,16 @@ type MessageCookieReply struct {
 type Handshake struct {
 	state                     handshakeState
 	mutex                     sync.RWMutex
-	hash                      [blake2s.Size]byte       // hash value
-	chainKey                  [blake2s.Size]byte       // chain key
-	presharedKey              NoiseSymmetricKey        // psk
-	localEphemeral            NoisePrivateKey          // ephemeral secret key
+	hash                      [blake2s.Size]byte       // hash value -
+	chainKey                  [blake2s.Size]byte       // chain key -
+	pqkexKey				  [blake2s.Size]byte		// post quantum key -
+	presharedKey              NoiseSymmetricKey        // psk -
+	localEphemeral            NoisePrivateKey          // ephemeral secret key -
 	localIndex                uint32                   // used to clear hash-table
 	remoteIndex               uint32                   // index for sending
-	remoteStatic              NoisePublicKey           // long term key
-	remoteEphemeral           NoisePublicKey           // ephemeral public key
-	precomputedStaticStatic   [NoisePublicKeySize]byte // precomputed shared secret
+	remoteStatic              NoisePublicKey           // long term key -
+	remoteEphemeral           NoisePublicKey           // ephemeral public key -
+	precomputedStaticStatic   [NoisePublicKeySize]byte // precomputed shared secret -
 	lastTimestamp             tai64n.Timestamp
 	lastInitiationConsumption time.Time
 	lastSentHandshake         time.Time
@@ -233,6 +235,25 @@ func (device *Device) CreateMessageInitiation(peer *Peer) (*MessageInitiation, e
 	timestamp := tai64n.Now()
 	aead, _ = chacha20poly1305.New(key[:])
 	aead.Seal(msg.Timestamp[:0], ZeroNonce[:], timestamp[:], handshake.hash[:])
+	//
+	//>> Convert Dr. YIwen's C++ code to go here:
+	// set the session ID
+	sessionID := hex.EncodeToString(handshake.hash[:])
+	// set own ID
+	// ownID := hex.EncodeToString()
+	// set peer ID
+	peerID := hex.EncodeToString(handshake.remoteStatic[:])
+
+
+
+
+
+
+
+
+	//< end
+
+
 
 	// assign index
 	device.indexTable.Delete(handshake.localIndex)

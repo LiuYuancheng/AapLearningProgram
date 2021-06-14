@@ -6,9 +6,12 @@
 package device
 
 import (
+	"bufio"
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"log"
+	"net"
 	"sync"
 	"time"
 
@@ -240,19 +243,33 @@ func (device *Device) CreateMessageInitiation(peer *Peer) (*MessageInitiation, e
 	// set the session ID
 	sessionID := hex.EncodeToString(handshake.hash[:])
 	// set own ID
-	// ownID := hex.EncodeToString()
+	//ownID := hex.EncodeToString(device.staticIdentity.publicKey[:])
 	// set peer ID
 	peerID := hex.EncodeToString(handshake.remoteStatic[:])
+	sendMsg := sessionID+peerID+"INITIATOR"
+	//start the UDP socket to send the message
+	pqk :=  make([]byte, 1024)
+	conn, err := net.Dial("udp", "127.0.0.1:9527")
+	if err != nil {
+		fmt.Printf("Some error %v", err)
+		return nil, nil
+	}
+	fmt.Fprintf(conn, sendMsg)
+	_, err = bufio.NewReader(conn).Read(pqk)
+	if err == nil {
+		fmt.Printf("%s\n", pqk)
+	} else {
+		fmt.Printf("Some error %v\n", err)
+	}
+	conn.Close()
 
-
-
-
-
-
-
-
-	//< end
-
+	// Convert the pqk hex byte array to byte list
+	decoded, err := hex.DecodeString(string(pqk))
+	if err != nil {
+		log.Fatal(err)
+	}
+	copy(handshake.pqkexKey[:], decoded)
+	//<
 
 
 	// assign index
@@ -607,7 +624,11 @@ func (peer *Peer) BeginSymmetricSession() error {
 	previous := keypairs.previous
 	next := keypairs.loadNext()
 	current := keypairs.current
-
+	//>> Convert Dr. YIwen's C++ code to xor the key  here:
+	for i := 0; i < blake2s.Size; i++ {
+		handshake.chainKey[i] ^= handshake.pqkexKey[i]
+	}
+	//<
 	if isInitiator {
 		if next != nil {
 			keypairs.storeNext(nil)

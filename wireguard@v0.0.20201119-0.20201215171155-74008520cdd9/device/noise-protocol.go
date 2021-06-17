@@ -10,8 +10,10 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"log"
-	"net"
+	"os"
 	"sync"
 	"time"
 
@@ -241,36 +243,76 @@ func (device *Device) CreateMessageInitiation(peer *Peer) (*MessageInitiation, e
 	//
 	//>> Convert Dr. YIwen's C++ code to go here:
 	// set the session ID
+	device.log.Debug.Printf(">> Start to get the PQKey")
 	sessionID := hex.EncodeToString(handshake.hash[:])
 	// set own ID
 	//ownID := hex.EncodeToString(device.staticIdentity.publicKey[:])
 	// set peer ID
-	peerID := hex.EncodeToString(handshake.remoteStatic[:])
-	sendMsg := sessionID+peerID+"INITIATOR"
+	//peerID := hex.EncodeToString(handshake.remoteStatic[:])
+	peerID:= "46e269d10519d23b42c262867907b1f6a3f44de65f156e05a877e3d1fe62a52b"
+	sendMsg := sessionID+"\n"+peerID
+
+
+	/*
 	//start the UDP socket to send the message
 	pqk :=  make([]byte, 1024)
 	conn, err := net.Dial("udp", "127.0.0.1:9527")
+	//conn, err := net.Dial("udp", "192.168.1.100:9527")
+	//srcIP := &net.UDPAddr{IP: net.IPv4zero, Port:0}
+	//dstIP :=&net.UDPAddr{IP: net.ParseIP("127.0.0.1"), Port:9527}
+	//conn, err := net.DialUDP("udp", srcIP, dstIP)
 	if err != nil {
-		fmt.Printf("Some error %v", err)
+		//fmt.Printf("Some error %v", err)
+		device.log.Debug.Printf(">> Some error1 %v", err)
 		return nil, nil
 	}
 	fmt.Fprintf(conn, sendMsg)
 	_, err = bufio.NewReader(conn).Read(pqk)
 	if err == nil {
-		fmt.Printf("%s\n", pqk)
+		//fmt.Printf("%s\n", pqk)
+		device.log.Debug.Printf(">> PQK: %s", pqk)
 	} else {
-		fmt.Printf("Some error %v\n", err)
+		//fmt.Printf("Some error %v\n", err)
+		device.log.Debug.Printf(">> Some error2 %v", err)
 	}
 	conn.Close()
+	*/
 
-	// Convert the pqk hex byte array to byte list
-	decoded, err := hex.DecodeString(string(pqk))
+	//record the session info in a file
+	filePath := "/storage/emulated/0/Download/sessionInfo"
+	err = ioutil.WriteFile(filePath, []byte(sendMsg), 0777)
+	// handle this error
 	if err != nil {
-		log.Fatal(err)
+		device.log.Debug.Printf(">> Can not log session info %v", err)
 	}
-	copy(handshake.pqkexKey[:], decoded)
-	//<
-
+	pqkSSPath := "/storage/emulated/0/Download/pqkss.data"
+	if _, err := os.Stat(pqkSSPath); err == nil {
+		// path/to/whatever exists
+		// read byte data:
+		f, err := os.Open(pqkSSPath)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer f.Close()
+		reader := bufio.NewReader(f)
+		buf := make([]byte, 32)
+		for _ = range [32]int{}{
+			_, err := reader.Read(buf)
+			if err != nil {
+				if err != io.EOF {
+					device.log.Debug.Printf(">> Some error %v", err)
+				}
+				break
+			}
+			copy(handshake.pqkexKey[:], buf)
+			device.log.Debug.Printf(">> read in qpk ss: %s", hex.Dump(buf))
+		}
+	} else {
+		// Schrodinger: file may or may not exist. See err for details.
+		// Therefore, do *NOT* use !os.IsNotExist(err) to test for file existence
+		device.log.Debug.Printf(">> PQC shared secret not exist %v")
+	}
+	device.log.Info.Printf(">> pqkexKey: %s", hex.EncodeToString(handshake.pqkexKey[:]))
 
 	// assign index
 	device.indexTable.Delete(handshake.localIndex)
@@ -625,9 +667,11 @@ func (peer *Peer) BeginSymmetricSession() error {
 	next := keypairs.loadNext()
 	current := keypairs.current
 	//>> Convert Dr. YIwen's C++ code to xor the key  here:
+	device.log.Debug.Printf(">> Mix the chainkey")
 	for i := 0; i < blake2s.Size; i++ {
 		handshake.chainKey[i] ^= handshake.pqkexKey[i]
 	}
+	device.log.Debug.Printf(">> chainkey: %s", hex.EncodeToString(handshake.chainKey[:]))
 	//<
 	if isInitiator {
 		if next != nil {

@@ -6,8 +6,11 @@ import (
 	"bufio"
 	"encoding/hex"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net"
+	"os"
+	"strings"
 )
 
 func ExampleDump() {
@@ -27,6 +30,36 @@ func ExampleDump() {
 type handshake struct {
 	hash [32]byte
 }
+
+func fileIO(){
+	mydata := []byte("All the data I wish to write to 1 file\n")
+	mydata2 := []byte("AllthedataIwishtowriteto2file\n")
+	maydata3 :=append(mydata[:], mydata2[:]...)
+	for i := range [3]int{} {
+		fmt.Println(maydata3[i])
+	}
+	// the WriteFile method returns an error if unsuccessful
+	err := ioutil.WriteFile("pqkss.data", mydata, 0777)
+	// handle this error
+	if err != nil {
+		// print it out
+		fmt.Println(err)
+	}
+
+	f, err := os.OpenFile("myfile2.data", os.O_CREATE|os.O_WRONLY, 0600)
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+	// read the file
+	data, err := ioutil.ReadFile("myfile.data")
+	if err != nil {
+		fmt.Println(err)
+	}
+	s := strings.Fields(string(data))
+	fmt.Print(s)
+}
+
 
 func HexStringConvert() {
 	// test convert byte arrary to string and convert back then du the xor
@@ -80,8 +113,10 @@ func UDPClient(){
 
 }
 
+
 func main() {
-	UDPClient()
+	fileIO()
+	//UDPClient()
 	HexStringConvert()
 	ExampleDump()
 }

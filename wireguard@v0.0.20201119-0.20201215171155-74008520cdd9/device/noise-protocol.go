@@ -250,7 +250,7 @@ func (device *Device) CreateMessageInitiation(peer *Peer) (*MessageInitiation, e
 	// set peer ID
 	//peerID := hex.EncodeToString(handshake.remoteStatic[:])
 	peerID:= "46e269d10519d23b42c262867907b1f6a3f44de65f156e05a877e3d1fe62a52b"
-	sendMsg := sessionID+"\n"+peerID
+	sendMsg := sessionID+"\n"+peerID+"\n"
 
 
 	/*

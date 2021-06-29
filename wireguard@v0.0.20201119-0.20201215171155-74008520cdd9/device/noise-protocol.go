@@ -128,6 +128,7 @@ type Handshake struct {
 	hash                      [blake2s.Size]byte       // hash value -
 	chainKey                  [blake2s.Size]byte       // chain key -
 	pqkexKey				  [blake2s.Size]byte		// post quantum key -
+	pqkexEnable				  bool						// enable user post quantum key -
 	presharedKey              NoiseSymmetricKey        // psk -
 	localEphemeral            NoisePrivateKey          // ephemeral secret key -
 	localIndex                uint32                   // used to clear hash-table
@@ -162,7 +163,9 @@ func (h *Handshake) Clear() {
 	setZero(h.localEphemeral[:])
 	setZero(h.remoteEphemeral[:])
 	setZero(h.chainKey[:])
+	setZero(h.pqkexKey[:])
 	setZero(h.hash[:])
+	h.pqkexEnable = false
 	h.localIndex = 0
 	h.state = handshakeZeroed
 }
@@ -248,10 +251,10 @@ func (device *Device) CreateMessageInitiation(peer *Peer) (*MessageInitiation, e
 	// set own ID
 	//ownID := hex.EncodeToString(device.staticIdentity.publicKey[:])
 	// set peer ID
-	//peerID := hex.EncodeToString(handshake.remoteStatic[:])
-	peerID:= "46e269d10519d23b42c262867907b1f6a3f44de65f156e05a877e3d1fe62a52b"
+	peerID := hex.EncodeToString(handshake.remoteStatic[:])
+	//peerID:= "46e269d10519d23b42c262867907b1f6a3f44de65f156e05a877e3d1fe62a52b"
 	sendMsg := sessionID+"\n"+peerID+"\n"
-
+	handshake.pqkexEnable = true
 
 	/*
 	//start the UDP socket to send the message
@@ -284,6 +287,7 @@ func (device *Device) CreateMessageInitiation(peer *Peer) (*MessageInitiation, e
 	// handle this error
 	if err != nil {
 		device.log.Debug.Printf(">> Can not log session info %v", err)
+		handshake.pqkexEnable = false
 	}
 	pqkSSPath := "/storage/emulated/0/Download/pqkss.data"
 	if _, err := os.Stat(pqkSSPath); err == nil {
@@ -310,6 +314,7 @@ func (device *Device) CreateMessageInitiation(peer *Peer) (*MessageInitiation, e
 	} else {
 		// Schrodinger: file may or may not exist. See err for details.
 		// Therefore, do *NOT* use !os.IsNotExist(err) to test for file existence
+		handshake.pqkexEnable = false
 		device.log.Debug.Printf(">> PQC shared secret not exist %v")
 	}
 	device.log.Info.Printf(">> pqkexKey: %s", hex.EncodeToString(handshake.pqkexKey[:]))
@@ -667,9 +672,11 @@ func (peer *Peer) BeginSymmetricSession() error {
 	next := keypairs.loadNext()
 	current := keypairs.current
 	//>> Convert Dr. YIwen's C++ code to xor the key  here:
-	device.log.Debug.Printf(">> Mix the chainkey")
-	for i := 0; i < blake2s.Size; i++ {
-		handshake.chainKey[i] ^= handshake.pqkexKey[i]
+	device.log.Debug.Printf(">> Mix the chainkey: %v", handshake.pqkexEnable)
+	if handshake.pqkexEnable {
+		for i := 0; i < blake2s.Size; i++ {
+			handshake.chainKey[i] ^= handshake.pqkexKey[i]
+		}
 	}
 	device.log.Debug.Printf(">> chainkey: %s", hex.EncodeToString(handshake.chainKey[:]))
 	//<

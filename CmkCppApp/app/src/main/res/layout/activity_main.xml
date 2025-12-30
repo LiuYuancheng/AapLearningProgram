@@ -20,7 +20,7 @@
         android:layout_height="100dp"
         android:layout_marginLeft="32dp"
         android:layout_marginRight="100dp"
-        android:text="Hello World! Cmake"
+        android:text="Text area Cmake"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintHorizontal_bias="0.125"
         app:layout_constraintLeft_toLeftOf="parent"
